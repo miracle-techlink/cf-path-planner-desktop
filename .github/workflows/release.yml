@@ -1,0 +1,111 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.1)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout desktop repo
+        uses: actions/checkout@v4
+
+      - name: Checkout cf-path-planner backend
+        uses: actions/checkout@v4
+        with:
+          repository: miracle-techlink/cf-path-planner-viz-
+          path: cf-path-planner-src
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+
+      - name: Symlink backend for extraResources
+        run: |
+          mkdir -p "连续碳纤维3D打印"
+          ln -s "$GITHUB_WORKSPACE/cf-path-planner-src" "连续碳纤维3D打印/cf-path-planner"
+
+      - name: Build AppImage
+        run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: release/*.AppImage
+
+  release:
+    needs: [build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: CF-Path-Planner ${{ steps.version.outputs.tag }}
+          body: |
+            ## CF-Path-Planner ${{ steps.version.outputs.tag }}
+
+            连续碳纤维3D打印路径规划软件
+
+            ### 安装说明
+
+            **Linux (推荐)**
+            ```bash
+            chmod +x CF-Path-Planner-*.AppImage
+            ./CF-Path-Planner-*.AppImage
+            ```
+
+            **首次运行**：需要 Python 3.9+ 及网络连接，程序会自动安装 Python 依赖（约 5 分钟）。
+
+            ### 依赖
+            - Python 3.9+（`python3` 需在 PATH 中）
+            - 网络连接（首次运行自动 pip install）
+
+            ### 功能
+            - FEA 应力分析
+            - 测地线路径规划
+            - XY+A 多轴路径生成
+            - G-code 导出
+            - Three.js 3D 可视化
+          files: |
+            artifacts/**/*.AppImage
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

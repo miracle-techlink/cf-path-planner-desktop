@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=CF-Path-Planner
+Comment=连续碳纤维3D打印路径规划软件
+Exec=/home/liuyue/Research/cf-path-planner-desktop/launch.sh
+Icon=/home/liuyue/Research/cf-path-planner-desktop/icons/icon.png
+Terminal=false
+Categories=Engineering;Science;
+StartupWMClass=CF-Path-Planner

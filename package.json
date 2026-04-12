@@ -1,0 +1,66 @@
+{
+  "name": "cf-path-planner",
+  "version": "1.0.0",
+  "description": "连续碳纤维3D打印路径规划软件",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "build:linux": "electron-builder --linux AppImage",
+    "build:win": "electron-builder --win nsis",
+    "build:all": "electron-builder -lw"
+  },
+  "build": {
+    "appId": "com.miracle-techlink.cf-path-planner",
+    "productName": "CF-Path-Planner",
+    "copyright": "Copyright © 2026 miracle-techlink",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html",
+      "icons/"
+    ],
+    "extraResources": [
+      {
+        "from": "../连续碳纤维3D打印/cf-path-planner",
+        "to": "cf-path-planner",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/*.pyc",
+          "!**/*.pyo",
+          "!**/.git/**",
+          "!**/node_modules/**",
+          "!**/examples/*/output*/**",
+          "!**/tests/output/**",
+          "!**/docs/*.aux",
+          "!**/docs/*.log",
+          "!**/docs/*.toc",
+          "!**/.DS_Store"
+        ]
+      }
+    ],
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "icon": "icons/",
+      "category": "Engineering",
+      "synopsis": "连续碳纤维3D打印路径规划",
+      "description": "Stress-driven continuous carbon fiber path planning for multi-axis 3D printing"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^36.9.5",
+    "electron-builder": "^26.0.0"
+  }
+}
