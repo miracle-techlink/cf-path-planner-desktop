@@ -1,5 +1,5 @@
 #!/bin/bash
-# CF-Path-Planner 启动脚本
+# MacroHard Maker 启动脚本
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ELECTRON="$DIR/node_modules/electron/dist/electron"

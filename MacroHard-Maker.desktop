@@ -1,10 +1,10 @@
 [Desktop Entry]
-Version=1.0
+Version=1.1.2
 Type=Application
-Name=CF-Path-Planner
+Name=MacroHard Maker
 Comment=连续碳纤维3D打印路径规划软件
 Exec=/home/liuyue/Research/cf-path-planner-desktop/launch.sh
 Icon=/home/liuyue/Research/cf-path-planner-desktop/icons/icon.png
 Terminal=false
 Categories=Engineering;Science;
-StartupWMClass=CF-Path-Planner
+StartupWMClass=MacroHard Maker
