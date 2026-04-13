@@ -92,15 +92,15 @@ function waitForServer(maxRetries = 40) {
 // ── 启动 Python server ─────────────────────────────────────────────────
 function startPythonServer(python, backendPath) {
   return new Promise((resolve, reject) => {
-    const script = path.join(backendPath, 'webapp', 'server.py')
-    pyProcess = spawn(python, [script, String(PORT)], {
+    const script = path.join(backendPath, 'webapp', 'run.py')
+    pyProcess = spawn(python, [script, '--port', String(PORT)], {
       cwd: backendPath,
       env: { ...process.env, PYTHONPATH: backendPath },
     })
     pyProcess.stdout.on('data', (d) => {
       const s = d.toString()
       console.log('[py]', s.trim())
-      if (s.includes('CF-Path-Planner server')) resolve()
+      if (s.includes('CF-Path-Planner') || s.includes('Application startup complete') || s.includes('Uvicorn running')) resolve()
     })
     pyProcess.stderr.on('data', (d) => console.error('[py err]', d.toString().trim()))
     pyProcess.on('error', reject)
