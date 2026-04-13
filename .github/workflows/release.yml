@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. v1.0.1)'
+        description: 'Release version (e.g. v1.1.2)'
         required: true
 
 permissions:
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout desktop repo
         uses: actions/checkout@v4
 
-      - name: Checkout cf-path-planner backend
+      - name: Checkout backend
         uses: actions/checkout@v4
         with:
           repository: miracle-techlink/macrohard-maker-core
@@ -37,7 +37,7 @@ jobs:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
           ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
 
-      - name: Symlink backend for extraResources
+      - name: Symlink backend
         run: |
           mkdir -p "连续碳纤维3D打印"
           ln -s "$GITHUB_WORKSPACE/cf-path-planner-src" "连续碳纤维3D打印/cf-path-planner"
@@ -49,17 +49,91 @@ jobs:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
           ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
 
-      - name: Upload AppImage artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-appimage
           path: release/*.AppImage
 
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout desktop repo
+        uses: actions/checkout@v4
+
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: miracle-techlink/macrohard-maker-core
+          path: cf-path-planner-src
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Symlink backend
+        run: |
+          mkdir -p "连续碳纤维3D打印"
+          ln -s "$GITHUB_WORKSPACE/cf-path-planner-src" "连续碳纤维3D打印/cf-path-planner"
+
+      - name: Build DMG (x64 + arm64)
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-dmg
+          path: release/*.dmg
+
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout desktop repo
+        uses: actions/checkout@v4
+
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: miracle-techlink/macrohard-maker-core
+          path: cf-path-planner-src
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Symlink backend (Junction)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "连续碳纤维3D打印"
+          New-Item -ItemType Junction -Path "连续碳纤维3D打印\cf-path-planner" -Target "$env:GITHUB_WORKSPACE\cf-path-planner-src"
+
+      - name: Build NSIS installer
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-installer
+          path: release/*.exe
+
   release:
-    needs: [build-linux]
+    needs: [build-linux, build-mac, build-win]
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -81,30 +155,41 @@ jobs:
           body: |
             ## MacroHard Maker ${{ steps.version.outputs.tag }}
 
-            连续碳纤维3D打印路径规划软件
+            连续碳纤维3D打印路径规划软件 — 应力驱动的多轴纤维路径规划
 
-            ### 安装说明
+            ### 下载
 
-            **Linux (推荐)**
+            | 平台 | 文件 | 说明 |
+            |------|------|------|
+            | 🐧 Linux | `MacroHard-Maker-*.AppImage` | x64，无需安装 |
+            | 🍎 macOS | `MacroHard-Maker-*-x64.dmg` | Intel Mac |
+            | 🍎 macOS | `MacroHard-Maker-*-arm64.dmg` | Apple Silicon (M1/M2/M3) |
+            | 🪟 Windows | `MacroHard-Maker-*-Setup.exe` | x64 NSIS 安装包 |
+
+            ### 安装
+
+            **Linux**
             ```bash
             chmod +x MacroHard-Maker-*.AppImage
             ./MacroHard-Maker-*.AppImage
             ```
 
-            **首次运行**：需要 Python 3.9+ 及网络连接，程序会自动安装 Python 依赖（约 5 分钟）。
+            **macOS** — 打开 `.dmg` 拖入 Applications 即可。首次运行右键→打开绕过 Gatekeeper。
 
-            ### 依赖
-            - Python 3.9+（`python3` 需在 PATH 中）
-            - 网络连接（首次运行自动 pip install）
+            **Windows** — 运行 `*-Setup.exe`，按向导安装。
+
+            ### 首次运行
+            需要 **Python 3.9+**（`python3` 或 `python` 在 PATH 中），程序会自动安装依赖（约 5 分钟）。
 
             ### 功能
-            - FEA 应力分析
-            - 测地线路径规划
-            - XY+A 多轴路径生成
-            - G-code 导出
-            - Three.js 3D 可视化
+            - FEA 应力分析 + 主方向提取
+            - XY+A 多轴缠绕 + 填充路径规划
+            - Three.js 3D 实时可视化（层切片滑块）
+            - G-code 导出（Klipper 兼容）
           files: |
             artifacts/**/*.AppImage
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
           draft: false
           prerelease: false
         env:

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron . --no-sandbox",
     "build:linux": "electron-builder --linux AppImage",
+    "build:mac": "electron-builder --mac dmg",
     "build:win": "electron-builder --win nsis",
     "build:all": "electron-builder -lw"
   },
@@ -48,6 +49,20 @@
       "category": "Engineering",
       "synopsis": "连续碳纤维3D打印路径规划",
       "description": "Stress-driven continuous carbon fiber path planning for multi-axis 3D printing"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "icons/icon.iconset",
+      "category": "public.app-category.developer-tools"
+    },
+    "dmg": {
+      "title": "MacroHard Maker",
+      "contents": [
+        { "x": 410, "y": 150, "type": "link", "path": "/Applications" },
+        { "x": 130, "y": 150, "type": "file" }
+      ]
     },
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
